@@ -1,25 +1,24 @@
-# Checks cineworld.ie for new ticket drops every 12 hours (or when you press "Run workflow"),
-# saves the history to data/state.json and publishes the page to GitHub Pages.
-name: Check Cineworld
+# Publishes the tracker page to GitHub Pages.
+# cineworld.ie blocks requests from GitHub's servers, so the checks run on your PC (node server.js),
+# which pushes data/state.json here. This workflow only rebuilds the page from that file.
+name: Deploy page
 
 on:
-  schedule:
-    - cron: "7 7,19 * * *" # 07:07 and 19:07 UTC
-  workflow_dispatch:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
 concurrency:
-  group: check
-  cancel-in-progress: false
+  group: pages
+  cancel-in-progress: true
 
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,23 +26,16 @@ jobs:
         with:
           node-version: 20
       - uses: actions/configure-pages@v5
-      - name: Check cineworld.ie and build the page
-        run: node server.js --once --out site
+      - name: Build the page from data/state.json
+        run: node server.js --build --out site
         env:
           STATIC_SITE: "1"
-      - name: Save history
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/state.json
-          git diff --cached --quiet || git commit -m "Update ticket data"
-          git push
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
   deploy:
-    needs: check
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages

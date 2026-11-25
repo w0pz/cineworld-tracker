@@ -34,13 +34,12 @@ Cloudflare blocks Node's built-in HTTP client on cineworld.ie, so requests go th
 
 ## GitHub Pages
 
-The page is published at https://w0pz.github.io/cineworld-tracker/.
+The page is published at https://w0pz.github.io/cineworld-tracker/ so you can see it from your phone.
 
-`.github/workflows/check.yml` runs `node server.js --once --out site` at 07:07 and 19:07 UTC, on every push, and
-whenever you press **Run workflow** (the page's **Check now ↗** button opens that screen). It saves the
-history back to `data/state.json` and deploys the page with a static `state.json`. A run takes about 2 minutes.
+cineworld.ie blocks requests from GitHub's servers, so **the checks run on your PC**: while `start.bat`
+(or `node server.js`) is running, each check (every 12 hours, or **Check now** on the local page) commits
+`data/state.json` and pushes it to GitHub. `.github/workflows/check.yml` then rebuilds the page from that
+file; it never contacts cineworld.ie. The published page shows when it was last updated and has no
+Check now button. Set `PUBLISH=0` to stop pushing.
 
-If a run turns red with "HTTP 403", Cloudflare is blocking GitHub's servers. In that case run the tracker
-locally and push `data/state.json` from your PC instead.
-
-To test the static page locally, add `?static` to the URL.
+To test the static page locally: `node server.js --build --out site`, serve `site/`, and add `?static` to the URL.

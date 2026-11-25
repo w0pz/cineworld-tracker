@@ -547,7 +547,7 @@ function renderRail() {
     const m = S.movies[e.movieId];
     const what = e.type === 'dates' ? ` · ${e.detail.added.length > 2 ? e.detail.added.length + ' new days' : e.detail.added.map(fmtDay).join(', ')}` : '';
     return ticketCard(m, { tag: true, sub: (isHot(m) ? '🔥 ' : '') + LBL[e.type] + ' · ' + ago(e.at) + what, fresh: e.at > seenAt });
-  }).join('') : `<div class="rail-empty"><span class="big">🎟️</span><div><b>No new drops since tracking started.</b><div class="meta">Watching ${Object.values(S.movies).filter(m => m.active).length} films. Automatic check every ${every(S.pollMinutes)}; press <b>Check now</b> when tickets are due to go on sale. New films and new dates land here first.</div></div></div>`;
+  }).join('') : `<div class="rail-empty"><span class="big">🎟️</span><div><b>No new drops since tracking started.</b><div class="meta">Watching ${Object.values(S.movies).filter(m => m.active).length} films. ${STATIC_MODE ? 'Updated by the tracker on your PC' : `Automatic check every ${every(S.pollMinutes)}; press <b>Check now</b> when tickets are due to go on sale`}. New films and new dates land here first.</div></div></div>`;
 
   const hot = Object.values(S.movies).filter(m => m.active && risk(m).level !== 'low').sort((a, b) => heat(b) - heat(a)).slice(0, 12);
   $('#riskNote').textContent = hot.length ? `${hot.filter(isHot).length} high, ${hot.filter(m => !isHot(m)).length} medium` : '';
@@ -663,7 +663,8 @@ $('#modal').addEventListener('click', e => { if (e.target.closest('[data-close]'
 function render() {
   if (!S) return;
   RISK = new Map();
-  $('#lastCheck').textContent = S.lastCheck ? `Checked ${ago(S.lastCheck)} · auto every ${every(S.pollMinutes)}` : 'Waiting for first check…';
+  $('#lastCheck').textContent = !S.lastCheck ? 'Waiting for first check…'
+    : STATIC_MODE ? `Updated ${ago(S.lastCheck)} from your PC` : `Checked ${ago(S.lastCheck)} · auto every ${every(S.pollMinutes)}`;
   $('#dot').classList.toggle('err', !!S.lastError);
   const eb = $('#errBox');
   eb.style.display = S.lastError ? 'block' : 'none';
@@ -707,14 +708,11 @@ updateNotifyBtn();
 // Static mode (GitHub Pages): data comes from state.json, rebuilt by a GitHub Actions workflow.
 // Locally (node server.js) it talks to the live server API.
 const STATIC_MODE = !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || new URLSearchParams(location.search).has('static');
-if (STATIC_MODE) {
-  $('#checkBtn').innerHTML = 'Check now ↗';
-  $('#checkBtn').title = 'Opens GitHub. Press "Run workflow"; this page updates about 2 minutes later.';
-}
+// Checks run on your PC, which pushes the results here, so the published page has no Check now button.
+if (STATIC_MODE) $('#checkBtn').style.display = 'none';
 async function load(force) {
   const btn = $('#checkBtn');
   if (STATIC_MODE) {
-    if (force) { window.open(S?.repo ? `https://github.com/${S.repo}/actions/workflows/check.yml` : 'https://github.com', '_blank', 'noopener'); return; }
     try {
       const next = await (await fetch(`state.json?t=${Date.now()}`, { cache: 'no-store' })).json();
       notifyNew(S, next); S = next; render();

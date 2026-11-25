@@ -10,6 +10,7 @@ const path = require('path');
 const PORT = Number(process.env.PORT) || 4321;
 // Automatic check every 12 hours; use "Check now" on the page when tickets are due to go on sale.
 const POLL_MINUTES = Number(process.env.POLL_MINUTES) || 720;
+let PUBLISH = false; // set below when running as a server inside the git repo
 const THEATER_ID = process.env.THEATER_ID || 'X07A4'; // Cineworld Dublin (the only IE site)
 const API = 'https://www.cineworld.ie/api/gatsby-source-boxofficeapi';
 const SITE = 'https://www.cineworld.ie';
@@ -48,7 +49,10 @@ function curlJson(url) {
       if (err) return reject(err);
       const i = stdout.lastIndexOf('\n');
       const status = Number(stdout.slice(i + 1));
-      if (status !== 200) return reject(new Error(`HTTP ${status} for ${url}`));
+      if (status !== 200) {
+        const body = stdout.slice(0, i).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+        return reject(new Error(`HTTP ${status} for ${url}${body ? ` (${body})` : ''}`));
+      }
       try { resolve(JSON.parse(stdout.slice(0, i))); } catch (e) { reject(new Error(`Bad JSON from ${url}`)); }
     });
   });
@@ -144,7 +148,7 @@ async function fetchSchedule() {
 
 let checking = null;
 function check() {
-  if (!checking) checking = doCheck().finally(() => { checking = null; });
+  if (!checking) checking = doCheck().finally(() => { checking = null; if (PUBLISH) publish(); });
   return checking;
 }
 
@@ -232,26 +236,57 @@ async function doCheck() {
 // ---------- http ----------
 function publicState() {
   return { ...state, pollMinutes: POLL_MINUTES, theaterId: THEATER_ID, serverTime: new Date().toISOString(),
-    // Set on GitHub Actions: the static page then links "Check now" to the workflow.
-    repo: process.env.GITHUB_REPOSITORY || null, static: !!process.env.STATIC_SITE };
+    static: !!process.env.STATIC_SITE };
 }
 
-// One-shot mode for GitHub Actions: `node server.js --once [--out dir]` runs a single check,
-// saves data/state.json and (with --out) builds the static site into that folder.
+// Command-line modes:
+//   node server.js --build --out site   build the static GitHub Pages site from data/state.json (no network)
+//   node server.js --once [--out site]  run one check, save data/state.json, optionally build the site
+function buildSite(out) {
+  fs.mkdirSync(out, { recursive: true });
+  fs.copyFileSync(PAGE_FILE, path.join(out, 'index.html'));
+  fs.writeFileSync(path.join(out, 'state.json'), JSON.stringify(publicState()));
+  console.log(`Static site written to ${out}`);
+}
+const outArg = process.argv.indexOf('--out') > -1 ? path.resolve(process.argv[process.argv.indexOf('--out') + 1]) : null;
+if (process.argv.includes('--build')) {
+  buildSite(outArg || path.join(__dirname, 'site'));
+  return;
+}
 if (process.argv.includes('--once')) {
-  const outIdx = process.argv.indexOf('--out');
-  const out = outIdx > -1 ? path.resolve(process.argv[outIdx + 1]) : null;
   check().then(() => {
-    if (out) {
-      fs.mkdirSync(out, { recursive: true });
-      fs.copyFileSync(PAGE_FILE, path.join(out, 'index.html'));
-      fs.writeFileSync(path.join(out, 'state.json'), JSON.stringify(publicState()));
-      console.log(`Static site written to ${out}`);
-    }
-    // Fail the run (red in GitHub Actions) if this check couldn't reach cineworld.ie.
+    if (outArg) buildSite(outArg);
     process.exit(state.lastError && state.lastError.at === state.lastCheck ? 1 : 0);
   });
   return;
+}
+
+// ---------- publishing to GitHub Pages ----------
+// Cineworld blocks requests from GitHub's servers, so this PC does the checking and pushes the
+// saved history to GitHub; the Pages workflow then only rebuilds the page. On by default when
+// this folder is a git repo; set PUBLISH=0 to turn it off.
+PUBLISH = process.env.PUBLISH !== '0' && fs.existsSync(path.join(__dirname, '.git'));
+function git(args) {
+  return new Promise((resolve, reject) => execFile('git', args, { cwd: __dirname }, (err, stdout, stderr) =>
+    err ? reject(new Error((stderr || err.message).trim().split('\n').pop())) : resolve(stdout.trim())));
+}
+let publishing = Promise.resolve();
+function publish() {
+  publishing = publishing.then(async () => {
+    try {
+      await git(['add', 'data/state.json']);
+      const changed = await git(['diff', '--cached', '--name-only']);
+      if (!changed) return;
+      await git(['commit', '-q', '-m', `Update ticket data (${state.lastCheck})`]);
+      await git(['push', '-q']);
+      state.lastPublish = { at: new Date().toISOString(), ok: true };
+      console.log('Published to GitHub');
+    } catch (err) {
+      state.lastPublish = { at: new Date().toISOString(), ok: false, message: err.message };
+      console.error('Publish to GitHub failed:', err.message);
+    }
+  });
+  return publishing;
 }
 
 const server = http.createServer(async (req, res) => {
