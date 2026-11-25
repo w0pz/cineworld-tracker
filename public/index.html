@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cineworld Ticket Drops</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎟️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0a09; --panel: #161412; --panel-2: #201d1a; --line: #2c2824;
+  --text: #f3eee6; --muted: #a0968b; --accent: #ffb020; --accent-ink: #1a1204;
+  --new: #3ddc84; --dates: #58a6ff; --gone: #8a817a; --hot: #ff6a3d; --err: #ff5d5d;
+  --shadow: 0 18px 40px -18px rgba(0,0,0,.8);
+}
+:root[data-theme="light"] {
+  --bg: #f4efe6; --panel: #fffcf6; --panel-2: #ebe4d8; --line: #ddd3c4;
+  --text: #1d1a16; --muted: #6d655b; --accent: #c77700; --accent-ink: #fff;
+  --new: #13854a; --dates: #1f6fd1; --gone: #8a817a; --hot: #d9480f; --err: #c62828;
+  --shadow: 0 18px 40px -22px rgba(60,40,10,.45);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Inter, system-ui, sans-serif; overflow-x: hidden; }
+body::after { /* film grain */
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 100; opacity: .05;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+a { color: inherit; }
+img { display: block; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+.display { font-family: 'Bebas Neue', Impact, sans-serif; font-weight: 400; letter-spacing: .5px; }
+button, select, input { font: inherit; color: var(--text); }
+button { cursor: pointer; border-radius: 999px; padding: 7px 14px; border: 1px solid var(--line); background: var(--panel); }
+button.primary, .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .6; cursor: progress; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 999px; text-decoration: none; font-weight: 600; border: 1px solid color-mix(in srgb, var(--text) 30%, transparent); background: color-mix(in srgb, var(--bg) 40%, transparent); backdrop-filter: blur(6px); }
+.btn:hover { border-color: var(--text); }
+.btn.primary:hover { filter: brightness(1.08); }
+
+/* top bar */
+.topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+.topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 10px 12px; padding-top: 12px; padding-bottom: 12px; flex-wrap: wrap; }
+.logo { font-size: 28px; line-height: 1; display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.logo b { color: var(--accent); font-weight: 400; }
+.logo .stub { width: 34px; height: 24px; border-radius: 4px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 15px;
+  -webkit-mask: radial-gradient(circle at 0 50%, transparent 5px, #000 5.5px) left/51% 100% no-repeat, radial-gradient(circle at 100% 50%, transparent 5px, #000 5.5px) right/51% 100% no-repeat;
+          mask: radial-gradient(circle at 0 50%, transparent 5px, #000 5.5px) left/51% 100% no-repeat, radial-gradient(circle at 100% 50%, transparent 5px, #000 5.5px) right/51% 100% no-repeat; }
+.status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--text);
+  background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px solid color-mix(in srgb, var(--text) 15%, transparent); backdrop-filter: blur(8px); }
+.status button { background: color-mix(in srgb, var(--bg) 55%, transparent); backdrop-filter: blur(8px); border-color: color-mix(in srgb, var(--text) 15%, transparent); }
+.status button.primary { background: var(--accent); border-color: var(--accent); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--new); animation: pulse 2s infinite; }
+.dot.err { background: var(--err); animation: none; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--new) 60%, transparent); } 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* hero */
+.hero { position: relative; display: flex; align-items: flex-end; overflow: hidden; isolation: isolate; border-radius: 18px; margin-top: 56px; border: 1px solid var(--line); }
+.hero-bg { position: absolute; inset: 0; z-index: -2; }
+.hero-bg img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.06); transition: opacity .9s ease, transform 8s ease-out; }
+.hero-bg img.blur { filter: blur(40px) saturate(1.4); transform: scale(1.3); }
+.hero-bg img.on { opacity: 1; transform: scale(1); }
+.hero-bg img.blur.on { transform: scale(1.25); }
+.hero::before { content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(to top, var(--bg) 2%, color-mix(in srgb, var(--bg) 70%, transparent) 38%, color-mix(in srgb, var(--bg) 15%, transparent) 75%, color-mix(in srgb, var(--bg) 55%, transparent)),
+              linear-gradient(to right, color-mix(in srgb, var(--bg) 85%, transparent), transparent 70%); }
+.hero-inner { display: flex; gap: 26px; align-items: center; padding: 26px; width: 100%; }
+.hero-poster { width: 130px; flex: none; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; box-shadow: 0 30px 60px -20px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.08); transform: rotate(-2deg); transition: transform .4s; }
+.hero-poster:hover { transform: rotate(0) scale(1.02); }
+.hero-poster img { width: 100%; height: 100%; object-fit: cover; }
+.hero-text { max-width: 680px; min-width: 0; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.eyebrow.new { color: var(--new); }
+.eyebrow .live { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+.hero h1 { font-size: clamp(32px, 5vw, 56px); line-height: .9; margin: 0 0 10px; text-wrap: balance; text-shadow: 0 4px 30px rgba(0,0,0,.4); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; color: var(--muted); font-size: 14px; margin-bottom: 14px; }
+.facts .sep { opacity: .4; }
+.cert { display: inline-grid; place-items: center; min-width: 30px; height: 22px; padding: 0 6px; border-radius: 5px; font-size: 12px; font-weight: 700; background: var(--text); color: var(--bg); }
+.badge { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 5px; font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; background: color-mix(in srgb, var(--text) 12%, transparent); color: var(--text); }
+.badge.imax { background: #1565c0; color: #fff; } .badge.fourdx { background: #7b1fa2; color: #fff; }
+.badge.classic { background: #8d6e63; color: #fff; } .badge.hot { background: var(--hot); color: #fff; }
+.badge.lang { background: #00897b; color: #fff; } .badge.new { background: var(--new); color: #04210f; }
+.synopsis { font-size: 15px; color: color-mix(in srgb, var(--text) 85%, transparent); margin: 0 0 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.credits { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.hero .btn { padding: 9px 16px; font-size: 14px; }
+.hero-dots { margin-top: 16px !important; }
+.credits b { color: var(--text); font-weight: 500; }
+.ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+.hero-dots { display: flex; gap: 8px; margin-top: 26px; }
+.hero-dots button { width: 34px; height: 4px; padding: 0; border-radius: 2px; border: 0; background: color-mix(in srgb, var(--text) 25%, transparent); }
+.hero-dots button.on { background: var(--accent); }
+
+/* sections */
+section { margin-top: 56px; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.sec-head h2 { font-size: 38px; margin: 0; line-height: 1; }
+.sec-head h2 small { font-family: Inter, sans-serif; font-size: 14px; color: var(--muted); letter-spacing: 0; margin-left: 10px; }
+
+/* ticket rail */
+/* Room around the cards so the hover lift + border isn't clipped by the scroll area;
+   the negative margin keeps the posters aligned with the page edge. */
+.rail { display: flex; gap: 16px; overflow-x: auto; padding: 14px 12px 20px; margin: -10px -12px 0; scroll-padding-inline: 12px; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.rail .card { flex: 0 0 196px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; padding-top: 6px; }
+.rail .card .ct { margin-top: 4px; font-size: 15px; }
+.card .bl { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 10px 9px; font-size: 12px; font-weight: 600; color: #f3eee6; background: linear-gradient(to top, rgba(0,0,0,.85), transparent); }
+.card .when { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: .5px; line-height: 1; color: var(--muted); }
+.card .when.best-txt { color: var(--new); }
+.card .cm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .cm:empty { display: none; }
+
+section.first { margin-top: 28px; }
+.sec-sub { color: var(--muted); font-size: 14px; margin: -8px 0 14px; }
+.risk { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.risk.high { background: var(--hot); color: #fff; }
+.risk.med { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }
+.risk.low { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--muted); }
+.reasons { display: flex; gap: 4px; flex-wrap: wrap; }
+.reasons span { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--panel-2); color: var(--muted); }
+.meta { color: var(--muted); font-size: 13px; }
+.rail-empty { flex: 1; padding: 30px; border: 2px dashed var(--line); border-radius: 14px; color: var(--muted); display: flex; gap: 18px; align-items: center; }
+.rail-empty .big { font-size: 44px; }
+
+/* toolbar */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips button { padding: 6px 13px; font-size: 13px; }
+.chips button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.chips button .n { opacity: .55; margin-left: 4px; }
+.toolbar .spacer { flex: 1; }
+.search { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); min-width: 180px; }
+select { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); }
+
+/* poster wall */
+.wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 26px 18px; }
+.card { position: relative; cursor: pointer; text-align: left; padding: 0; border: 0; background: none; border-radius: 0; color: inherit; }
+.card .pf { position: relative; aspect-ratio: 2/3; border-radius: 10px; overflow: hidden; background: var(--panel-2); box-shadow: var(--shadow); transition: transform .25s, box-shadow .25s; }
+.card:hover .pf, .card:focus-visible .pf { transform: translateY(-6px) scale(1.02); box-shadow: 0 26px 50px -18px rgba(0,0,0,.9), 0 0 0 2px var(--accent); }
+.card .pf img { width: 100%; height: 100%; object-fit: cover; }
+.card .noimg { position: absolute; inset: 0; display: grid; place-items: center; padding: 14px; text-align: center; font-size: 26px; line-height: 1; color: var(--muted); }
+.card .tl { position: absolute; top: 8px; left: 8px; display: flex; gap: 4px; flex-wrap: wrap; }
+.card .tr { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.card .hover { position: absolute; inset: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; font-size: 13px; color: #f3eee6;
+  background: linear-gradient(to top, rgba(0,0,0,.92) 20%, rgba(0,0,0,.55) 60%, transparent); opacity: 0; transition: opacity .25s; }
+.card:hover .hover, .card:focus-visible .hover { opacity: 1; }
+.card .hover p { margin: 0; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+.card .ct { font-weight: 600; margin-top: 10px; line-height: 1.25; }
+.card .cm { color: var(--muted); font-size: 13px; }
+.ribbon { position: absolute; top: 14px; left: -30px; transform: rotate(-45deg); background: var(--new); color: #04210f; font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 3px 34px; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.wall-empty { grid-column: 1/-1; padding: 40px; text-align: center; color: var(--muted); border: 2px dashed var(--line); border-radius: 14px; }
+
+/* log */
+.log { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.log li { display: flex; gap: 12px; align-items: center; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.log li:hover { border-color: var(--accent); }
+.log img, .log .ph { width: 38px; height: 57px; object-fit: cover; border-radius: 4px; flex: none; background: var(--panel-2); }
+.log time { font-size: 12px; color: var(--muted); }
+.log b { font-weight: 600; }
+.tag { display: inline-block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; padding: 1px 6px; border-radius: 4px; margin-right: 6px; vertical-align: 1px; }
+.tag.new { background: color-mix(in srgb, var(--new) 20%, transparent); color: var(--new); }
+.tag.back { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+.tag.dates { background: color-mix(in srgb, var(--dates) 20%, transparent); color: var(--dates); }
+.tag.gone { background: color-mix(in srgb, var(--gone) 20%, transparent); color: var(--gone); }
+
+/* modal */
+dialog { width: min(920px, calc(100vw - 24px)); max-height: calc(100vh - 40px); padding: 0; border: 0; border-radius: 16px; background: var(--panel); color: var(--text); box-shadow: 0 40px 100px rgba(0,0,0,.7); overflow: auto; }
+dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(4px); }
+.m-head { position: relative; min-height: 300px; display: flex; align-items: flex-end; isolation: isolate; }
+.m-head > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.m-head > img.blur { filter: blur(30px) saturate(1.4); transform: scale(1.3); }
+.m-head::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, var(--panel) 5%, color-mix(in srgb, var(--panel) 40%, transparent) 60%, transparent); }
+.m-head .in { display: flex; gap: 22px; align-items: flex-end; padding: 24px; width: 100%; }
+.m-head .mp { width: 130px; flex: none; aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); }
+.m-head .mp img { width: 100%; height: 100%; object-fit: cover; }
+.m-head h3 { font-size: clamp(34px, 6vw, 56px); line-height: .9; margin: 0 0 10px; }
+.m-close { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; padding: 0; font-size: 20px; line-height: 1; background: rgba(0,0,0,.5); color: #fff; border-color: rgba(255,255,255,.2); z-index: 2; }
+.m-body { padding: 0 24px 26px; }
+.m-body .synopsis { -webkit-line-clamp: unset; }
+.m-info { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; color: var(--muted); margin: 14px 0 20px; }
+.m-info b { color: var(--text); font-weight: 500; }
+.days { display: grid; gap: 14px; }
+.day h4 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; }
+.times { display: flex; flex-wrap: wrap; gap: 8px; }
+.time { display: flex; flex-direction: column; gap: 4px; min-width: 78px; padding: 8px 12px 9px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); text-decoration: none; transition: border-color .15s, transform .15s; }
+.time:hover { border-color: var(--accent); transform: translateY(-2px); }
+.time .tm { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+.time .tx { font-size: 10px; font-weight: 700; letter-spacing: .5px; color: var(--muted); text-transform: uppercase; }
+.occ { height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.occ i { display: block; height: 100%; background: var(--new); }
+.occ i.mid { background: var(--accent); } .occ i.high { background: var(--hot); }
+.legend { font-size: 12px; color: var(--muted); margin: 0 0 14px; }
+.time.clash { opacity: .38; }
+.time.clash:hover { opacity: .8; }
+.time.best { border-color: var(--new); box-shadow: 0 0 0 1px var(--new), 0 8px 20px -8px color-mix(in srgb, var(--new) 60%, transparent); }
+.time .bt { font-size: 10px; font-weight: 800; letter-spacing: .5px; color: var(--new); text-transform: uppercase; }
+.best-txt { color: var(--new); }
+.card .cm.best-txt { font-weight: 600; }
+.best-box { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 16px; margin-bottom: 20px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--new) 50%, transparent); background: color-mix(in srgb, var(--new) 10%, transparent); }
+.best-box .big { font-family: 'Bebas Neue', sans-serif; font-size: 26px; line-height: 1; letter-spacing: .5px; }
+.sched { width: min(440px, calc(100vw - 24px)); padding: 24px; }
+.sched h3 { font-size: 36px; margin: 0 0 6px; line-height: 1; }
+.sched fieldset { border: 0; padding: 0; margin: 16px 0; }
+.sched legend, .sched label { font-size: 13px; color: var(--muted); }
+.sched label { display: flex; flex-direction: column; gap: 4px; }
+.sched label.check { flex-direction: row; align-items: center; gap: 8px; margin: 14px 0 20px; color: var(--text); }
+.sched input[type=time], .sched input[type=number] { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.dayboxes { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.dayboxes label { flex-direction: row; }
+.dayboxes input { position: absolute; opacity: 0; pointer-events: none; }
+.dayboxes span { display: inline-grid; place-items: center; width: 44px; height: 36px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; color: var(--text); font-weight: 600; }
+.dayboxes input:checked + span { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.dayboxes input:focus-visible + span { outline: 2px solid var(--text); }
+
+.err-box { margin: 16px 0 0; padding: 10px 14px; border-radius: 8px; background: color-mix(in srgb, var(--err) 14%, transparent); color: var(--err); display: none; }
+footer { margin: 64px 0 40px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 18px; }
+
+@media (max-width: 720px) {
+  .hero-inner { gap: 16px; padding: 18px; align-items: flex-start; }
+  .hero-poster { width: 84px; }
+  .hero .credits { display: none; }
+  .topbar .wrap { padding-top: 8px; padding-bottom: 8px; }
+  .topbar .pill { order: 3; font-size: 12px; padding: 4px 10px; }
+  .status { gap: 6px; }
+  .status button { padding: 5px 10px; font-size: 13px; }
+  .status .lbl { display: none; }
+  .logo { font-size: 22px; }
+  .logo .stub { width: 28px; height: 20px; font-size: 12px; }
+  .wall { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px 12px; }
+  .rail .card { flex-basis: 150px; }
+  .log { grid-template-columns: 1fr; }
+  .m-head .mp { width: 90px; }
+  .search { flex: 1; min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo display" href="#"><span class="stub">🎟</span>Ticket <b>Drops</b></a>
+    <div class="status">
+      <span class="pill"><span class="dot" id="dot"></span><span id="lastCheck">Loading…</span></span>
+      <button id="schedBtn" title="Set your work hours to get the best screening time for you">⏰<span class="lbl"> My hours</span></button>
+      <button id="notifyBtn" title="Desktop notifications for new ticket drops">🔔<span class="lbl"> Notify me</span></button>
+      <button id="themeBtn" title="Toggle light/dark">◐</button>
+      <button class="primary" id="checkBtn">Check now</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="err-box" id="errBox"></div>
+
+  <section id="dropsSec" class="first">
+    <div class="sec-head"><h2 class="display">Fresh ticket drops<small id="dropsNote"></small></h2></div>
+    <p class="sec-sub">New films and new dates the moment cineworld.ie opens bookings. 🔥 marks drops that could sell out, so book those first.</p>
+    <div class="rail" id="rail"></div>
+  </section>
+
+  <section id="riskSec">
+    <div class="sec-head"><h2 class="display">Likely to sell out<small id="riskNote"></small></h2></div>
+    <p class="sec-sub">Based on how fast seats are going, IMAX and 4DX screens, preview screenings and one-off events.</p>
+    <div class="rail" id="riskRail"></div>
+  </section>
+
+  <div class="hero" id="hero">
+    <div class="hero-bg" id="heroBg"></div>
+    <div class="hero-inner" id="heroInner"></div>
+  </div>
+
+  <section>
+    <div class="sec-head"><h2 class="display">On sale now<small id="activeCount"></small></h2></div>
+    <div class="toolbar">
+      <div class="chips" id="chips"></div>
+      <span class="spacer"></span>
+      <input class="search" id="search" type="search" placeholder="Search films…" aria-label="Search films">
+      <select id="sort" aria-label="Sort">
+        <option value="onsale">Newest on sale</option>
+        <option value="best">Soonest I can go</option>
+        <option value="next">Next showing</option>
+        <option value="release">Release date</option>
+        <option value="hot">Selling fastest</option>
+        <option value="title">A–Z</option>
+      </select>
+    </div>
+    <div class="wall" id="wall"></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2 class="display">Drop history</h2>
+      <div class="chips" id="logFilters">
+        <button data-f="all" class="on">All</button><button data-f="new">New films</button><button data-f="dates">New dates</button><button data-f="gone">Left</button>
+      </div>
+    </div>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <footer>Data from cineworld.ie (Cineworld Dublin). Films already on sale when tracking began are marked as tracked since that time. <span id="pollInfo"></span></footer>
+</main>
+
+<dialog id="modal" aria-label="Film details"></dialog>
+
+<dialog id="schedDlg" class="sched" aria-label="My hours">
+  <form method="dialog" id="schedForm">
+    <h3 class="display">My hours</h3>
+    <p class="meta">Screenings that clash with work are skipped. For each film, the earliest showtime that fits is marked <b class="best-txt">★ Best for you</b>.</p>
+    <fieldset><legend>Work days</legend><div class="dayboxes" id="dayBoxes"></div></fieldset>
+    <div class="row2">
+      <label>Work starts<input type="time" name="start" required></label>
+      <label>Work ends<input type="time" name="end" required></label>
+    </div>
+    <div class="row2">
+      <label>Travel buffer (min)<input type="number" name="buffer" min="0" max="180" step="5"></label>
+      <label>Film must end by<input type="time" name="latest"></label>
+    </div>
+    <label class="check"><input type="checkbox" name="trailers"> Add 20 min for ads & trailers before the film</label>
+    <div class="ctas"><button class="primary" value="save">Save</button><button value="cancel" formnovalidate>Cancel</button></div>
+  </form>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+let S = null, chip = 'all', logFilter = 'all', heroIdx = 0, heroList = [], heroTimer = null, lastHeroKey = '';
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+const savedTheme = store.get('cw-theme');
+if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+$('#themeBtn').onclick = () => {
+  const t = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = t; store.set('cw-theme', t);
+};
+$('#sort').value = store.get('cw-sort') || 'onsale';
+
+// ---------- helpers ----------
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const img = (u, size) => !u ? null : /acsta\.net\/img\//.test(u) ? u.replace('acsta.net/img/', `acsta.net/${size}/img/`) : u;
+const posterUrl = m => img(m.poster, 'c_400_600');
+const backdropUrl = m => img(m.backdrops?.[0], 'r_1920_1080');
+const DUB = 'Europe/Dublin';
+const todayStr = () => new Date().toLocaleDateString('en-CA', { timeZone: DUB });
+const fmtDay = d => d ? new Date(d.slice(0, 10) + 'T12:00:00').toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' }) : '—';
+const fmtTime = iso => new Date(iso).toLocaleString('en-IE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+function ago(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + ' min ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+function until(day) {
+  const diff = Math.round((new Date(day.slice(0, 10) + 'T12:00:00') - new Date(todayStr() + 'T12:00:00')) / 864e5);
+  return diff <= 0 ? 'today' : diff === 1 ? 'tomorrow' : `in ${diff} days`;
+}
+const nowLocal = () => new Date().toLocaleString('sv-SE', { timeZone: DUB }).replace(' ', 'T').slice(0, 16);
+const upcoming = m => { const n = nowLocal(); return (m.shows || []).filter(s => s.at.slice(0, 16) >= n); };
+const nextShow = m => upcoming(m)[0] || null;
+const nextDay = m => nextShow(m)?.at || (m.days || []).find(d => d >= todayStr()) || m.days?.[0];
+// ---------- sell-out risk ----------
+// How fast the fullest screening is filling, in percentage points per hour, between the
+// latest check and the earliest check of the last 24 h (at least 5 minutes apart).
+function velocity(m) {
+  const h = (m.occHist || []).filter(x => Date.now() - Date.parse(x.t) <= 24 * 3600e3);
+  if (h.length < 2) return 0;
+  const hrs = (Date.parse(h[h.length - 1].t) - Date.parse(h[0].t)) / 3600e3;
+  return hrs < 0.08 ? 0 : Math.max(0, Math.round((h[h.length - 1].max - h[0].max) / hrs));
+}
+const every = min => min >= 60 ? `${+(min / 60).toFixed(1)} h` : `${min} min`;
+let RISK = new Map();
+function risk(m) {
+  if (RISK.has(m.id)) return RISK.get(m.id);
+  const up = upcoming(m), tags = m.tags || [], why = [];
+  let score = 0;
+  if (up.length) {
+    const maxOcc = Math.max(...up.map(s => s.occ || 0));
+    const almost = tags.includes('Internal.Data.AlmostSoldOut');
+    if (almost) { score += 45; why.push(`Almost sold out · ${maxOcc}% booked`); }
+    if (maxOcc >= 70) { score += 35; if (!almost) why.push(`${maxOcc}% booked`); }
+    else if (maxOcc >= 40) { score += 20; if (!almost) why.push(`${maxOcc}% booked`); }
+    const v = velocity(m);
+    if (v >= 8) { score += 30; why.push(`+${v}% an hour`); } else if (v >= 3) { score += 15; why.push(`+${v}% an hour`); }
+    const prem = [['Format.Projection.Imax', 'IMAX'], ['Auditorium.Experience.4dx', '4DX'], ['Auditorium.Experience.InfinityVision', 'Infinity']]
+      .filter(([t]) => tags.includes(t)).map(x => x[1]);
+    if (prem.length) { score += 15; why.push(`${prem.join(' / ')} screen`); }
+    if (tags.includes('Showtime.Event.QandAEvent')) { score += 20; why.push('Q&A event'); }
+    if (m.release && up[0].at.slice(0, 10) < m.release.slice(0, 10)) { score += 20; why.push('Preview before release'); }
+    if (up.length <= 3) { score += tags.includes('Showtime.Event.BigScreenClassics') ? 10 : 15; why.push(`Only ${up.length} screening${up.length === 1 ? '' : 's'}`); }
+    if (m.release && !m.baseline && Math.abs(Date.parse(m.release) - Date.now()) < 10 * 864e5 && up.length >= 15) { score += 10; why.push('Big opening'); }
+  }
+  const r = { score, level: score >= 50 ? 'high' : score >= 25 ? 'med' : 'low', why };
+  RISK.set(m.id, r);
+  return r;
+}
+const riskBadge = m => { const r = risk(m); return r.level === 'low' ? '' : `<span class="risk ${r.level}">${r.level === 'high' ? '🔥 Could sell out' : 'Selling steadily'}</span>`; };
+const heat = m => risk(m).score;
+const isHot = m => risk(m).level === 'high';
+const isFresh = m => !m.baseline && Date.now() - new Date(m.firstSeen) < 7 * 864e5;
+const yr = m => m.release ? m.release.slice(0, 4) : '';
+
+const TAGS = {
+  'Format.Projection.Imax': ['IMAX', 'imax'], 'Auditorium.Experience.4dx': ['4DX', 'fourdx'],
+  'Auditorium.Experience.InfinityVision': ['Infinity', 'imax'], 'Showtime.Event.BigScreenClassics': ['Classic', 'classic'],
+  'Showtime.Event.QandAEvent': ['Q&A', 'classic'], 'Showtime.Restriction.MembersOnly': ['Members', ''],
+};
+function badges(tags, { lang = true } = {}) {
+  const out = [];
+  for (const t of tags || []) {
+    if (TAGS[t]) out.push(`<span class="badge ${TAGS[t][1]}">${TAGS[t][0]}</span>`);
+    else if (lang && t.startsWith('Localization.Language.')) out.push(`<span class="badge lang">${esc(t.split('.').pop())}</span>`);
+  }
+  return out.join('');
+}
+const SHOW_TAG = { 'Format.Projection.Imax': 'IMAX', 'Auditorium.Experience.4dx': '4DX', 'Auditorium.Experience.InfinityVision': 'Infinity',
+  'Showtime.Accessibility.Subtitled': 'Subs', 'Showtime.Accessibility.AudioDescription': 'AD', 'Showtime.Event.QandAEvent': 'Q&A',
+  'Showtime.Restriction.MembersOnly': 'Members', 'Format.Projection.Laser': 'Laser' };
+const cert = m => m.certificate ? `<span class="cert">${esc(m.certificate)}</span>` : '';
+
+// ---------- my hours: best screening that doesn't clash with work ----------
+const SCHED_DEFAULT = { days: [1, 2, 3, 4, 5], start: '08:00', end: '16:30', buffer: 30, latest: '', trailers: true };
+let SCHED = SCHED_DEFAULT;
+try { SCHED = { ...SCHED_DEFAULT, ...JSON.parse(store.get('cw-sched') || '{}') }; } catch {}
+const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const dowOf = at => new Date(Date.UTC(+at.slice(0, 4), +at.slice(5, 7) - 1, +at.slice(8, 10))).getUTCDay();
+// Returns null if the show fits, or a short reason why it doesn't.
+function clash(s, m) {
+  const start = toMin(s.at.slice(11, 16));
+  const end = start + (SCHED.trailers ? 20 : 0) + (m.runtime || 120);
+  if (SCHED.days.includes(dowOf(s.at))) {
+    const ws = toMin(SCHED.start), we = toMin(SCHED.end), b = +SCHED.buffer || 0;
+    if (!(start >= we + b || end <= ws - b)) return 'Clashes with work';
+  }
+  if (SCHED.latest) {
+    let latest = toMin(SCHED.latest); if (latest < 12 * 60) latest += 1440; // e.g. 00:30 = after midnight
+    if (end > latest) return `Ends after ${SCHED.latest}`;
+  }
+  return null;
+}
+const fitting = m => upcoming(m).filter(s => !clash(s, m));
+// Best = the earliest screening that fits your hours and still has good seats (under 70% full).
+// If every fitting screening is busier than that, the emptiest one on the earliest day.
+function bestShow(m) {
+  const f = fitting(m); if (!f.length) return null;
+  const roomy = f.find(s => (s.occ ?? 0) < 70);
+  if (roomy) return roomy;
+  const day = f[0].at.slice(0, 10);
+  return f.filter(s => s.at.startsWith(day)).sort((a, b) => (a.occ ?? 0) - (b.occ ?? 0))[0];
+}
+const fmtShow = s => `${fmtDay(s.at)} ${s.at.slice(11, 16)}`;
+const endTime = (s, m) => { const e = (toMin(s.at.slice(11, 16)) + (SCHED.trailers ? 20 : 0) + (m.runtime || 120)) % 1440; return `${String(Math.floor(e / 60)).padStart(2, '0')}:${String(e % 60).padStart(2, '0')}`; };
+
+// settings dialog
+const DAY_NAMES = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']];
+function openSched() {
+  const f = $('#schedForm');
+  $('#dayBoxes').innerHTML = DAY_NAMES.map(([n, l]) => `<label><input type="checkbox" name="day" value="${n}" ${SCHED.days.includes(n) ? 'checked' : ''}><span>${l}</span></label>`).join('');
+  f.start.value = SCHED.start; f.end.value = SCHED.end; f.buffer.value = SCHED.buffer; f.latest.value = SCHED.latest; f.trailers.checked = SCHED.trailers;
+  if ($('#modal').open) $('#modal').close();
+  $('#schedDlg').showModal();
+}
+$('#schedBtn').onclick = openSched;
+$('#schedDlg').addEventListener('close', () => {
+  if ($('#schedDlg').returnValue !== 'save') return;
+  const f = $('#schedForm');
+  SCHED = { days: [...f.querySelectorAll('[name=day]:checked')].map(x => +x.value), start: f.start.value, end: f.end.value,
+    buffer: +f.buffer.value || 0, latest: f.latest.value, trailers: f.trailers.checked };
+  store.set('cw-sched', JSON.stringify(SCHED));
+  render();
+});
+const bookLink = m => (bestShow(m) || nextShow(m))?.link || m.url;
+
+// ---------- hero ----------
+function pickHero() {
+  const ms = S.movies, today = todayStr();
+  const drops = S.events.filter(e => (e.type === 'new' || e.type === 'back') && ms[e.movieId]?.active);
+  const seen = new Set(), list = [];
+  for (const e of drops) if (!seen.has(e.movieId)) { seen.add(e.movieId); list.push({ m: ms[e.movieId], kind: 'drop', at: e.at }); }
+  if (list.length < 5) { // pad with the biggest upcoming openers
+    const soon = Object.values(ms).filter(m => m.active && !seen.has(m.id) && m.release && m.release.slice(0, 10) >= today && m.backdrops?.length)
+      .sort((a, b) => a.release.localeCompare(b.release));
+    for (const m of soon.slice(0, 5 - list.length)) list.push({ m, kind: 'soon' });
+  }
+  return list.slice(0, 5);
+}
+function renderHero(force) {
+  heroList = pickHero();
+  const key = heroList.map(h => h.m.id).join();
+  if (key !== lastHeroKey || force) { lastHeroKey = key; if (heroIdx >= heroList.length) heroIdx = 0; }
+  const h = heroList[heroIdx];
+  if (!h) { $('#hero').style.display = 'none'; return; }
+  $('#hero').style.display = '';
+  const m = h.m, ns = bestShow(m);
+  const bd = backdropUrl(m), bg = $('#heroBg');
+  const src = bd || posterUrl(m);
+  if (bg.dataset.src !== src) {
+    bg.dataset.src = src;
+    const el = new Image(); el.alt = ''; el.src = src; if (!bd) el.className = 'blur';
+    el.onload = () => { bg.querySelectorAll('img').forEach(o => { o.classList.remove('on'); setTimeout(() => o.remove(), 900); }); bg.appendChild(el); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on'))); };
+  }
+  const eyebrow = h.kind === 'drop'
+    ? `<div class="eyebrow new"><span class="live"></span>Tickets just dropped · ${ago(h.at)}</div>`
+    : `<div class="eyebrow">Opening ${until(m.release)} · ${fmtDay(m.release)}</div>`;
+  $('#heroInner').innerHTML = `
+    <a class="hero-poster" href="#" data-open="${esc(m.id)}">${m.poster ? `<img src="${esc(posterUrl(m))}" alt="${esc(m.title)} poster">` : ''}</a>
+    <div class="hero-text">
+      ${eyebrow}
+      <h1 class="display">${esc(m.title)}</h1>
+      <div class="facts">${cert(m)}${m.runtime ? `<span>${m.runtime} min</span><span class="sep">•</span>` : ''}<span>${esc(m.genres || '')}</span>${badges(m.tags)}${isHot(m) ? '<span class="badge hot">🔥 Selling fast</span>' : ''}</div>
+      ${m.synopsis ? `<p class="synopsis">${esc(m.synopsis)}</p>` : ''}
+      <div class="credits">${m.cast?.length ? `Starring <b>${esc(m.cast.slice(0, 3).join(', '))}</b>` : ''}${m.director?.length ? ` · Directed by <b>${esc(m.director.join(', '))}</b>` : ''}</div>
+      <div class="ctas">
+        <a class="btn primary" href="${esc(bookLink(m))}" target="_blank" rel="noopener" title="Best screening outside your work hours">🎟 ${ns ? `Best for you · ${fmtShow(ns)}` : 'Book'}</a>
+        <a class="btn" href="#" data-open="${esc(m.id)}">All ${upcoming(m).length} showtimes</a>
+      </div>
+      ${heroList.length > 1 ? `<div class="hero-dots">${heroList.map((x, i) => `<button aria-label="Show ${esc(x.m.title)}" data-hero="${i}" class="${i === heroIdx ? 'on' : ''}"></button>`).join('')}</div>` : ''}
+    </div>`;
+}
+function rotateHero() {
+  clearInterval(heroTimer);
+  heroTimer = setInterval(() => { if (heroList.length > 1 && !document.hidden) { heroIdx = (heroIdx + 1) % heroList.length; renderHero(); } }, 9000);
+}
+
+// ---------- rail ----------
+// Poster card used in the drops and sell-out rails.
+function ticketCard(m, { tag = '', sub = '', fresh = false } = {}) {
+  const r = risk(m), b = bestShow(m);
+  // One line of context: what dropped (drops rail) or the main sell-out reason (risk rail).
+  const line = sub || (r.level === 'high' ? `🔥 ${r.why[0] || 'Could sell out'}` : r.why[0] || '');
+  return `<button class="card" data-open="${esc(m.id)}" aria-label="${esc(m.title)}">
+    <div class="pf">${m.poster ? `<img src="${esc(posterUrl(m))}" alt="" loading="lazy">` : `<div class="noimg display">${esc(m.title)}</div>`}</div>
+    <div class="ct">${esc(m.title)}</div>
+    <div class="cm">${esc(line)}</div>
+    <div class="cm ${b ? 'best-txt' : ''}">${b ? `★ ${fmtShow(b)}` : ''}</div>
+  </button>`;
+}
+function renderRail() {
+  const seenAt = store.get('cw-seen-at') || '';
+  const LBL = { new: 'New film', back: 'Back on sale', dates: 'New dates' };
+  const seen = new Set();
+  const evs = S.events.filter(e => LBL[e.type] && S.movies[e.movieId]?.active)
+    .filter(e => !seen.has(e.movieId + e.type) && seen.add(e.movieId + e.type)).slice(0, 24);
+  $('#dropsNote').textContent = evs.length ? `${evs.length} recent` : '';
+  $('#rail').innerHTML = evs.length ? evs.map(e => {
+    const m = S.movies[e.movieId];
+    const what = e.type === 'dates' ? ` · ${e.detail.added.length > 2 ? e.detail.added.length + ' new days' : e.detail.added.map(fmtDay).join(', ')}` : '';
+    return ticketCard(m, { tag: true, sub: (isHot(m) ? '🔥 ' : '') + LBL[e.type] + ' · ' + ago(e.at) + what, fresh: e.at > seenAt });
+  }).join('') : `<div class="rail-empty"><span class="big">🎟️</span><div><b>No new drops since tracking started.</b><div class="meta">Watching ${Object.values(S.movies).filter(m => m.active).length} films. Automatic check every ${every(S.pollMinutes)}; press <b>Check now</b> when tickets are due to go on sale. New films and new dates land here first.</div></div></div>`;
+
+  const hot = Object.values(S.movies).filter(m => m.active && risk(m).level !== 'low').sort((a, b) => heat(b) - heat(a)).slice(0, 12);
+  $('#riskNote').textContent = hot.length ? `${hot.filter(isHot).length} high, ${hot.filter(m => !isHot(m)).length} medium` : '';
+  $('#riskSec').style.display = hot.length ? '' : 'none';
+  $('#riskRail').innerHTML = hot.map(m => ticketCard(m)).join('');
+}
+
+// ---------- wall ----------
+const CHIPS = [
+  ['all', 'All', () => true],
+  ['fresh', '✨ Just added', isFresh],
+  ['soon', 'Opening soon', m => m.release && m.release.slice(0, 10) > todayStr()],
+  ['hot', '🔥 Could sell out', isHot],
+  ['imax', 'IMAX', m => (m.tags || []).includes('Format.Projection.Imax')],
+  ['4dx', '4DX', m => (m.tags || []).includes('Auditorium.Experience.4dx')],
+  ['classic', 'Classics', m => (m.tags || []).includes('Showtime.Event.BigScreenClassics')],
+  ['world', 'World cinema', m => (m.tags || []).some(t => t.startsWith('Localization.Language.'))],
+];
+function renderWall() {
+  const active = Object.values(S.movies).filter(m => m.active);
+  $('#activeCount').textContent = `${active.length} films`;
+  $('#chips').innerHTML = CHIPS.map(([k, l, f]) => { const n = active.filter(f).length; return (n || k === 'all') ? `<button data-chip="${k}" class="${k === chip ? 'on' : ''}">${l}<span class="n">${n}</span></button>` : ''; }).join('');
+  const q = $('#search').value.trim().toLowerCase();
+  const f = (CHIPS.find(c => c[0] === chip) || CHIPS[0])[2];
+  let list = active.filter(f).filter(m => !q || [m.title, m.genres, ...(m.cast || []), ...(m.director || [])].join(' ').toLowerCase().includes(q));
+  const sort = $('#sort').value;
+  const cmp = {
+    onsale: (a, b) => b.firstSeen.localeCompare(a.firstSeen) || (nextDay(a) || '').localeCompare(nextDay(b) || ''),
+    next: (a, b) => (nextDay(a) || '~').localeCompare(nextDay(b) || '~'),
+    best: (a, b) => (bestShow(a)?.at || '~').localeCompare(bestShow(b)?.at || '~'),
+    release: (a, b) => (b.release || '').localeCompare(a.release || ''),
+    hot: (a, b) => heat(b) - heat(a),
+    title: (a, b) => a.title.localeCompare(b.title),
+  }[sort];
+  list.sort(cmp);
+  $('#wall').innerHTML = list.length ? list.map(m => {
+    const ns = nextDay(m), n = upcoming(m).length;
+    return `<button class="card" data-open="${esc(m.id)}" aria-label="${esc(m.title)}">
+      <div class="pf">${m.poster ? `<img src="${esc(posterUrl(m))}" alt="" loading="lazy">` : `<div class="noimg display">${esc(m.title)}</div>`}</div>
+      <div class="ct">${esc(m.title)}</div>
+      ${(b => b ? `<div class="cm best-txt">★ ${fmtShow(b)}</div>` : `<div class="cm">${ns ? 'No time fits your hours' : ''}</div>`)(bestShow(m))}
+    </button>`;
+  }).join('') : `<div class="wall-empty">No films match.</div>`;
+}
+
+// ---------- log ----------
+function eventText(e) {
+  const d = e.detail || {};
+  if (e.type === 'new') return `Tickets released · first show ${fmtDay(d.firstShow)}, ${d.days} day${d.days === 1 ? '' : 's'} on sale`;
+  if (e.type === 'back') return `Back on sale · first show ${fmtDay(d.firstShow)}`;
+  if (e.type === 'dates') return `New dates: ${d.added.map(fmtDay).join(', ')}`;
+  if (e.type === 'gone') return 'No more showtimes';
+  return e.type;
+}
+const LABEL = { new: 'New', back: 'Back', dates: 'Dates', gone: 'Left' };
+function renderLog() {
+  const evs = S.events.filter(e => logFilter === 'all' || e.type === logFilter || (logFilter === 'new' && e.type === 'back')).slice(0, 60);
+  $('#log').innerHTML = evs.length ? evs.map(e => {
+    const m = S.movies[e.movieId] || {};
+    return `<li data-open="${esc(e.movieId)}">${m.poster ? `<img src="${esc(img(m.poster, 'c_120_180'))}" alt="" loading="lazy">` : '<div class="ph"></div>'}
+      <div><time>${fmtTime(e.at)}</time><div><span class="tag ${e.type}">${LABEL[e.type]}</span><b>${esc(e.title)}</b></div><div class="meta">${esc(eventText(e))}</div></div></li>`;
+  }).join('') : '<li style="cursor:default"><span class="meta">Nothing logged yet. Changes on cineworld.ie will appear here.</span></li>';
+}
+
+// ---------- modal ----------
+function openFilm(id) {
+  const m = S.movies[id]; if (!m) return;
+  const bd = backdropUrl(m);
+  const byDay = {};
+  for (const s of upcoming(m)) (byDay[s.at.slice(0, 10)] ||= []).push(s);
+  const days = Object.entries(byDay);
+  const best = bestShow(m);
+  const d = $('#modal');
+  d.innerHTML = `
+    <button class="m-close" aria-label="Close" data-close>×</button>
+    <div class="m-head">
+      ${bd ? `<img src="${esc(bd)}" alt="">` : m.poster ? `<img class="blur" src="${esc(posterUrl(m))}" alt="">` : ''}
+      <div class="in">
+        <div class="mp">${m.poster ? `<img src="${esc(posterUrl(m))}" alt="">` : ''}</div>
+        <div><h3 class="display">${esc(m.title)}</h3>
+          <div class="facts">${cert(m)}${m.runtime ? `<span>${m.runtime} min</span>` : ''}<span>${esc(m.genres || '')}</span>${badges(m.tags)}${isHot(m) ? '<span class="badge hot">🔥 Selling fast</span>' : ''}</div></div>
+      </div>
+    </div>
+    <div class="m-body">
+      ${m.synopsis ? `<p class="synopsis">${esc(m.synopsis)}</p>` : ''}
+      <div class="m-info">
+        ${m.cast?.length ? `<span>Starring <b>${esc(m.cast.join(', '))}</b></span>` : ''}
+        ${m.director?.length ? `<span>Director <b>${esc(m.director.join(', '))}</b></span>` : ''}
+        ${m.release ? `<span>Released <b>${fmtDay(m.release)}</b></span>` : ''}
+        <span>${m.baseline ? 'Tracked since' : 'Tickets on sale since'} <b>${fmtTime(m.firstSeen)}</b></span>
+        ${m.advisory ? `<span>Advice <b>${esc(m.advisory)}</b></span>` : ''}
+      </div>
+      ${best ? `<div class="best-box"><div><div class="meta best-txt"><b>★ Best for you</b></div><div class="big">${fmtShow(best)}</div>
+          <div class="meta">${until(best.at)} · ${100 - (best.occ ?? 0)}% of seats free${best.screen ? ' · screen ' + esc(best.screen) : ''} · ends around ${endTime(best, m)}</div></div>
+          <span class="spacer" style="flex:1"></span><a class="btn primary" href="${esc(best.link || m.url)}" target="_blank" rel="noopener">🎟 Book this</a></div>`
+        : days.length ? `<div class="best-box"><div class="meta">None of the ${upcoming(m).length} showtimes fit your hours. <a href="#" data-sched>Change my hours</a></div></div>` : ''}
+      <div class="ctas" style="margin-bottom:22px"><a class="btn" href="${esc(m.url)}" target="_blank" rel="noopener">Film page on cineworld.ie ↗</a></div>
+      ${days.length ? `<p class="legend">Tap a time to pick seats. The bar shows how full it is. Faded times clash with your hours.</p><div class="days">${days.map(([day, shows]) => `
+        <div class="day"><h4>${fmtDay(day)} · ${until(day)}</h4><div class="times">${shows.map(s => {
+          const occ = s.occ ?? 0, extra = s.tags.map(t => SHOW_TAG[t]).filter(x => x && x !== 'Laser');
+          const why = clash(s, m), isBest = best && s.at === best.at && s.link === best.link;
+          return `<a class="time ${why ? 'clash' : ''} ${isBest ? 'best' : ''}" href="${esc(s.link || m.url)}" target="_blank" rel="noopener" title="${why ? esc(why) + ' · ' : ''}${s.screen ? 'Screen ' + esc(s.screen) + ' · ' : ''}${occ}% full · ends ~${endTime(s, m)}">
+            ${isBest ? '<span class="bt">★ Best</span>' : ''}<span class="tm">${s.at.slice(11, 16)}</span>${extra.length ? `<span class="tx">${esc(extra.join(' · '))}</span>` : ''}
+            <span class="occ"><i class="${occ >= 70 ? 'high' : occ >= 40 ? 'mid' : ''}" style="width:${Math.max(4, Math.min(100, occ))}%"></i></span></a>`;
+        }).join('')}</div></div>`).join('')}</div>` : '<p class="meta">No upcoming showtimes listed.</p>'}
+    </div>`;
+  if (!d.open) d.showModal();
+  d.scrollTop = 0;
+}
+$('#modal').addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target === e.currentTarget) $('#modal').close(); });
+
+// ---------- global ----------
+function render() {
+  if (!S) return;
+  RISK = new Map();
+  $('#lastCheck').textContent = S.lastCheck ? `Checked ${ago(S.lastCheck)} · auto every ${every(S.pollMinutes)}` : 'Waiting for first check…';
+  $('#dot').classList.toggle('err', !!S.lastError);
+  const eb = $('#errBox');
+  eb.style.display = S.lastError ? 'block' : 'none';
+  if (S.lastError) eb.textContent = `Last check failed (${fmtTime(S.lastError.at)}): ${S.lastError.message}`;
+  $('#pollInfo').textContent = `${S.checks || 0} checks so far.`;
+  renderHero(); renderRail(); renderWall(); renderLog();
+}
+
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-sched]')) { e.preventDefault(); openSched(); return; }
+  const o = e.target.closest('[data-open]');
+  if (o) { e.preventDefault(); openFilm(o.dataset.open); return; }
+  const h = e.target.closest('[data-hero]');
+  if (h) { heroIdx = +h.dataset.hero; renderHero(); rotateHero(); return; }
+  const c = e.target.closest('[data-chip]');
+  if (c) { chip = c.dataset.chip; renderWall(); return; }
+  const lf = e.target.closest('#logFilters [data-f]');
+  if (lf) { logFilter = lf.dataset.f; document.querySelectorAll('#logFilters button').forEach(b => b.classList.toggle('on', b === lf)); renderLog(); }
+});
+$('#search').oninput = () => renderWall();
+$('#sort').onchange = () => { store.set('cw-sort', $('#sort').value); renderWall(); };
+
+// notifications
+function notifyNew(prev, next) {
+  if (!prev || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const known = new Set(prev.events.map(e => e.id));
+  for (const e of next.events.filter(e => !known.has(e.id) && (e.type === 'new' || e.type === 'back')).reverse()) {
+    const m = next.movies[e.movieId] || {};
+    const n = new Notification(`🎟️ Tickets on sale: ${e.title}`, { body: eventText(e), icon: posterUrl(m) || undefined });
+    n.onclick = () => { window.focus(); openFilm(e.movieId); };
+  }
+}
+function updateNotifyBtn() {
+  const b = $('#notifyBtn');
+  if (!('Notification' in window)) { b.style.display = 'none'; return; }
+  b.innerHTML = `🔔<span class="lbl"> ${Notification.permission === 'granted' ? 'Alerts on' : 'Notify me'}</span>`;
+}
+$('#notifyBtn').onclick = async () => { await Notification.requestPermission(); updateNotifyBtn(); };
+updateNotifyBtn();
+
+// Static mode (GitHub Pages): data comes from state.json, rebuilt by a GitHub Actions workflow.
+// Locally (node server.js) it talks to the live server API.
+const STATIC_MODE = !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || new URLSearchParams(location.search).has('static');
+if (STATIC_MODE) {
+  $('#checkBtn').innerHTML = 'Check now ↗';
+  $('#checkBtn').title = 'Opens GitHub. Press "Run workflow"; this page updates about 2 minutes later.';
+}
+async function load(force) {
+  const btn = $('#checkBtn');
+  if (STATIC_MODE) {
+    if (force) { window.open(S?.repo ? `https://github.com/${S.repo}/actions/workflows/check.yml` : 'https://github.com', '_blank', 'noopener'); return; }
+    try {
+      const next = await (await fetch(`state.json?t=${Date.now()}`, { cache: 'no-store' })).json();
+      notifyNew(S, next); S = next; render();
+    } catch (e) { $('#lastCheck').textContent = 'Could not load data'; $('#dot').classList.add('err'); }
+    return;
+  }
+  if (force) { btn.disabled = true; btn.textContent = 'Checking…'; }
+  try {
+    const r = await fetch(force ? '/api/check' : '/api/state', { method: force ? 'POST' : 'GET' });
+    const next = await r.json();
+    notifyNew(S, next);
+    S = next; render();
+  } catch (e) {
+    $('#lastCheck').textContent = 'Tracker server not reachable';
+    $('#dot').classList.add('err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Check now';
+  }
+}
+$('#checkBtn').onclick = () => load(true);
+addEventListener('visibilitychange', () => { if (document.hidden && S) store.set('cw-seen-at', S.serverTime); });
+
+load().then(rotateHero);
+setInterval(load, (STATIC_MODE ? 2 : 1) * 60 * 1000);
+</script>
+</body>
+</html>
